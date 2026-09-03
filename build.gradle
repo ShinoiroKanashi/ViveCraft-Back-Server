@@ -1,0 +1,62 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${fabric_loom}"
+}
+ 
+group = maven_group
+version = project.mod_version + "+mc" + minecraft_version
+ 
+base {
+    archivesName.set(mod_id)
+}
+ 
+repositories {
+    mavenCentral()
+ 
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
+}
+ 
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+    compileOnly "maven.modrinth:vivecraft:${vivecraft_version}"
+    compileOnly "maven.modrinth:modmenu:${modmenu_version}"
+}
+ 
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = Integer.parseInt(java_version)
+}
+ 
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version)
+    withSourcesJar()
+}
+ 
+processResources {
+    var expandProps = [
+        'version'              : version,
+        'mod_id'               : mod_id,
+        'mod_name'             : mod_name,
+        'mod_authors'          : mod_authors,
+        'description'          : mod_description,
+        'fabric_mc_range'      : fabric_mc_range,
+        'fabric_loader_version': fabric_loader_version,
+    ]
+ 
+    filesMatching('fabric.mod.json') {
+        expand expandProps
+    }
+ 
+    inputs.properties(expandProps)
+}

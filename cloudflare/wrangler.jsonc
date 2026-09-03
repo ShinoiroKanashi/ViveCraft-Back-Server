@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vivecraft-back-server-relay",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-09-03",
+  "preview_urls": false,
+  "observability": { "logs": { "enabled": true, "invocation_logs": true, "persist": true } },
+  "durable_objects": { "bindings": [{ "name": "RELAY", "class_name": "RelayRoom" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RelayRoom"] }]
+}

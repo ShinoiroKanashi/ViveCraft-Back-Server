@@ -1,0 +1,9 @@
+{
+  "name": "vivecraft-back-server-relay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone WebSocket relay for ViveCraft Back Server",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "ws": "^8.18.0" }
+}

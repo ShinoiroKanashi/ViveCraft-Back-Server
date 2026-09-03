@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${version}",
+
+  "name": "${mod_name}",
+  "description": "${description}",
+  "authors": ["${mod_authors}"],
+  "license": "MIT",
+  "icon": "assets/vivecraft-back-server/textures/icon.png",
+
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.vivecraft.backserver.ViveCraftBackServer"
+    ],
+    "modmenu": [
+      "dev.vivecraft.backserver.BackServerModMenuApiImpl"
+    ]
+  },
+
+  "depends": {
+    "fabricloader": ">=${fabric_loader_version}",
+    "minecraft": ${fabric_mc_range},
+    "fabric-api": "*",
+    "vivecraft": "*"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
+}

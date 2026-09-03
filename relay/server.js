@@ -8,6 +8,10 @@ const HOST = process.env.HOST || "0.0.0.0";
 const LOGGING = (process.env.LOGGING ?? "false").toLowerCase() === "true";
 const MAX_PACKET_BYTES = 4096;
 const HEARTBEAT_INTERVAL_MS = 30_000;
+const MAX_MESSAGES_PER_SECOND = 50;
+const RATE_LIMIT_BURST = 15;
+const RATE_VIOLATION_WINDOW_MS = 1_000;
+const MAX_RATE_VIOLATIONS = 100;
 const MAX_ROOM_LENGTH = 256;
 const MAX_UUID_LENGTH = 64;
 const rooms = new Map();
@@ -16,11 +20,42 @@ function log(...args) { if (LOGGING) console.log(`[${new Date().toISOString()}]`
 function logError(...args) { console.error(`[${new Date().toISOString()}]`, ...args); }
 function roomSet(room) { let s = rooms.get(room); if (!s) rooms.set(room, s = new Set()); return s; }
 function sendJson(ws, obj) { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj)); }
+
+function allowMessage(ws, now = Date.now()) {
+  let bucket = ws.rateLimit;
+  if (!bucket) {
+    bucket = ws.rateLimit = {
+      tokens: RATE_LIMIT_BURST,
+      lastRefill: now,
+      violations: 0,
+      violationWindowStart: now,
+    };
+  }
+  const elapsed = Math.max(0, now - bucket.lastRefill);
+  bucket.tokens = Math.min(
+    RATE_LIMIT_BURST,
+    bucket.tokens + (elapsed * MAX_MESSAGES_PER_SECOND) / 1_000,
+  );
+  bucket.lastRefill = now;
+  if (bucket.tokens >= 1) {
+    bucket.tokens -= 1;
+    return true;
+  }
+  if (now - bucket.violationWindowStart >= RATE_VIOLATION_WINDOW_MS) {
+    bucket.violationWindowStart = now;
+    bucket.violations = 0;
+  }
+  bucket.violations += 1;
+  if (bucket.violations >= MAX_RATE_VIOLATIONS) {
+    try { ws.close(1008, "rate limit exceeded"); } catch {}
+  }
+  return false;
+}
+
 function broadcast(room, sender, data, binary = true) {
   const set = rooms.get(room); if (!set) return;
   for (const client of set) {
     if (client === sender || client.readyState !== WebSocket.OPEN) continue;
-    // Drop stale pose frames instead of allowing latency to accumulate.
     if (client.bufferedAmount > MAX_PACKET_BYTES * 4) continue;
     try { client.send(data, { binary }); } catch (e) { logError("broadcast", e); }
   }
@@ -58,6 +93,7 @@ wss.on("connection", (ws, req) => {
   ws.room = null;
   ws.uuid = null;
   ws.isAlive = true;
+  ws.rateLimit = null;
   log("connection", req.socket?.remoteAddress);
 
   ws.on("pong", () => { ws.isAlive = true; });
@@ -86,6 +122,7 @@ wss.on("connection", (ws, req) => {
       }
       if (!isBinary) return;
       if (data.length > MAX_PACKET_BYTES) return ws.close(1009, "packet too large");
+      if (!allowMessage(ws)) return;
       broadcast(ws.room, ws, data, true);
     } catch (e) { logError("message", e); }
   });

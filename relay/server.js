@@ -1,5 +1,6 @@
 "use strict";
 
+require("dotenv").config();
 const WebSocket = require("ws");
 
 const PORT = Number(process.env.PORT || 8765);

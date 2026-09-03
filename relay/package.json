@@ -5,5 +5,5 @@
   "description": "Standalone WebSocket relay for ViveCraft Back Server",
   "main": "server.js",
   "scripts": { "start": "node server.js" },
-  "dependencies": { "ws": "^8.18.0" }
+  "dependencies": { "dotenv": "^17.2.2", "ws": "^8.18.0" }
 }
